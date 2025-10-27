@@ -76,31 +76,22 @@ function createCardElement (card) {
   const controls = document.createElement('div')
   controls.className = 'card-controls'
 
-  const label = document.createElement('label')
-  label.textContent = 'Language'
-
   const select = document.createElement('select')
   select.dataset.role = 'translation-lang'
   select.dataset.id = card.id
+  select.title = 'Translation language'
+  select.setAttribute('aria-label', 'Translation language')
 
   const selectedLang = card.targetLanguage || uiLanguage
   select.innerHTML = buildLanguageOptions(selectedLang)
 
-  label.appendChild(select)
-  controls.appendChild(label)
-
-  const translateBtn = document.createElement('button')
-  translateBtn.type = 'button'
-  translateBtn.dataset.act = 'translate'
-  translateBtn.dataset.id = card.id
-  translateBtn.textContent = 'Translate'
-  controls.appendChild(translateBtn)
-
+  controls.appendChild(select)
   const deleteBtn = document.createElement('button')
   deleteBtn.type = 'button'
   deleteBtn.dataset.act = 'delete'
   deleteBtn.dataset.id = card.id
-  deleteBtn.textContent = 'Delete'
+  deleteBtn.innerHTML = '&#128465;'
+  deleteBtn.setAttribute('aria-label', 'Delete card')
   controls.appendChild(deleteBtn)
 
   element.appendChild(controls)
@@ -155,7 +146,7 @@ async function renderGallery () {
   }
 }
 
-async function translateCard (cardId) {
+async function translateCard (cardId, specifiedLang) {
   const index = cardIndexMap.get(cardId)
   if (typeof index !== 'number') return
 
@@ -166,15 +157,27 @@ async function translateCard (cardId) {
   const output = gallery.querySelector(
     `p[data-role="translation-output"][data-id="${cardId}"]`
   )
-  const button = gallery.querySelector(
-    `button[data-act="translate"][data-id="${cardId}"]`
-  )
 
-  if (!card || !select || !output || !button) return
+  if (!card || !select || !output) return
 
-  const lang = resolveLanguageValue(select.value)
+  const lang = resolveLanguageValue(specifiedLang || select.value)
   select.value = lang
   card.targetLanguage = lang
+
+  if (lang === 'en') {
+    const text = (card.descriptionEn || '').trim()
+    card.translations[lang] = text
+    output.hidden = false
+    if (text) {
+      output.textContent = text
+      output.setAttribute('lang', 'en')
+    } else {
+      output.textContent = 'No English description available.'
+      output.removeAttribute('lang')
+    }
+    await setCards(cardsCache)
+    return
+  }
 
   const existing = card.translations[lang]
   if (existing) {
@@ -192,7 +195,13 @@ async function translateCard (cardId) {
     return
   }
 
-  button.disabled = true
+  if (!card.descriptionEn) {
+    output.hidden = false
+    output.textContent = 'No English description available.'
+    output.removeAttribute('lang')
+    return
+  }
+
   output.hidden = false
   output.textContent = `Translating to ${getLanguageLabel(lang)}...`
   output.removeAttribute('lang')
@@ -203,8 +212,15 @@ async function translateCard (cardId) {
       targetLanguage: lang
     })
     const translated = await translator.translate(card.descriptionEn)
-    card.translations[lang] = translated
-    output.textContent = translated
+    const text =
+      typeof translated === 'string'
+        ? translated.trim()
+        : String(translated || '').trim()
+    if (!text) {
+      throw new Error('Translation unavailable.')
+    }
+    card.translations[lang] = text
+    output.textContent = text
     output.setAttribute('lang', lang)
     await setCards(cardsCache)
   } catch (error) {
@@ -213,8 +229,6 @@ async function translateCard (cardId) {
       error && error.message ? error.message : 'Translation unavailable.'
     output.textContent = message
     output.removeAttribute('lang')
-  } finally {
-    button.disabled = false
   }
 }
 
@@ -229,8 +243,6 @@ gallery.addEventListener('click', async event => {
     cardsCache.splice(index, 1)
     await setCards(cardsCache)
     await renderGallery()
-  } else if (act === 'translate') {
-    await translateCard(id)
   }
 })
 
@@ -238,31 +250,7 @@ gallery.addEventListener('change', event => {
   const select = event.target.closest('select[data-role="translation-lang"]')
   if (!select) return
   const cardId = select.dataset.id
-  const index = cardIndexMap.get(cardId)
-  if (typeof index !== 'number') return
-
-  const card = cardsCache[index]
-  const lang = resolveLanguageValue(select.value)
-  select.value = lang
-  card.targetLanguage = lang
-
-  const output = gallery.querySelector(
-    `p[data-role="translation-output"][data-id="${cardId}"]`
-  )
-  if (!output) return
-
-  const existing = card.translations[lang]
-  if (existing) {
-    output.hidden = false
-    output.textContent = existing
-    output.setAttribute('lang', lang)
-  } else {
-    output.hidden = true
-    output.textContent = ''
-    output.removeAttribute('lang')
-  }
-
-  void setCards(cardsCache)
+  void translateCard(cardId, select.value)
 })
 
 clearAllBtn.addEventListener('click', async () => {

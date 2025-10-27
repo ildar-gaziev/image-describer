@@ -1,8 +1,5 @@
 import { saveCurrentCard, getSessionSnapshot } from '../shared/cards.js'
-import {
-  getLanguageLabel,
-  resolveLanguageValue
-} from '../shared/languages.js'
+import { getLanguageLabel, resolveLanguageValue } from '../shared/languages.js'
 
 const thumb = document.getElementById('thumb')
 const loadingPanel = document.getElementById('loading')
@@ -13,11 +10,16 @@ const closeBtn = document.getElementById('closePopup')
 const statusEl = document.getElementById('status')
 
 const TARGET_LANGUAGE_KEY = 'targetLanguage'
+const PLACEHOLDER_IMAGE = chrome.runtime.getURL('icons/icon128.png')
 
 let englishText = ''
 let translationText = ''
 let targetLanguage = 'en'
 let translationJob = 0
+
+if (thumb) {
+  thumb.src = PLACEHOLDER_IMAGE
+}
 
 function setStatus (message) {
   statusEl.textContent = message || ''
@@ -31,8 +33,9 @@ function updateActionsState () {
 
 function updateThumb (imageSrc, thumbDataUrl) {
   if (!thumb) return
-  const src = thumbDataUrl || (imageSrc && !imageSrc.startsWith('blob:') ? imageSrc : '')
-  thumb.src = src || ''
+  const src =
+    thumbDataUrl || (imageSrc && !imageSrc.startsWith('blob:') ? imageSrc : '')
+  thumb.src = src || PLACEHOLDER_IMAGE
 }
 
 function clearTranslatedText () {
@@ -160,6 +163,17 @@ async function initTargetLanguage () {
   targetLanguage = resolveLanguageValue(stored[TARGET_LANGUAGE_KEY])
 }
 
+function resetForNewGeneration () {
+  translationJob += 1
+  englishText = ''
+  translationText = ''
+  loadingPanel.removeAttribute('hidden')
+  clearTranslatedText()
+  updateActionsState()
+  setStatus('Generating description...')
+  updateThumb('', '')
+}
+
 async function handleAddCard ({ openHistory } = {}) {
   if (!englishText) return false
   addCardBtn.disabled = true
@@ -209,15 +223,14 @@ function setupListeners () {
           translationText = ''
           clearTranslatedText()
           updateActionsState()
+          setStatus('Generating description...')
         }
       }
 
       if (changes.translationText || changes.translationLang) {
         const langRaw = changes.translationLang?.newValue || ''
         const textRaw = changes.translationText?.newValue || ''
-        const normalizedLang = langRaw
-          ? resolveLanguageValue(langRaw)
-          : ''
+        const normalizedLang = langRaw ? resolveLanguageValue(langRaw) : ''
         if (normalizedLang === targetLanguage && textRaw) {
           translationText = textRaw
           showTranslationResult(translationText)
@@ -237,7 +250,9 @@ function setupListeners () {
   })
 
   chrome.runtime.onMessage.addListener(request => {
-    if (request?.type === 'ENGLISH_ALT_TEXT_READY') {
+    if (request?.type === 'ALT_TEXT_GENERATION_STARTED') {
+      resetForNewGeneration()
+    } else if (request?.type === 'ENGLISH_ALT_TEXT_READY') {
       const message = request.englishText || ''
       if (message) {
         englishText = message
@@ -265,7 +280,10 @@ function setupListeners () {
 
   if (thumb) {
     thumb.onerror = () => {
-      thumb.src = ''
+      thumb.src = PLACEHOLDER_IMAGE
+    }
+    if (!thumb.getAttribute('src')) {
+      thumb.src = PLACEHOLDER_IMAGE
     }
   }
 }

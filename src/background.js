@@ -57,6 +57,25 @@ async function clearSessionSnapshot () {
 async function openHistoryPage () {
   const url = chrome.runtime.getURL('pages/history.html')
   try {
+    const existingTabs = await chrome.tabs
+      .query({ url: [`${url}*`] })
+      .catch(() => [])
+
+    const targetTab = existingTabs.find(tab => !tab.pendingUrl)
+
+    if (targetTab) {
+      await chrome.tabs.update(targetTab.id, { active: true })
+      if (typeof targetTab.windowId === 'number') {
+        chrome.windows
+          .update(targetTab.windowId, { focused: true })
+          .catch(() => {})
+      }
+      await chrome.tabs.reload(targetTab.id, { bypassCache: true }).catch(
+        () => {}
+      )
+      return
+    }
+
     await chrome.tabs.create({ url })
   } catch (error) {
     console.error('Failed to open history page', error)
@@ -192,6 +211,25 @@ async function describeImageFromContext (info, tab) {
 
   const imageSrc = info.srcUrl
   const pageUrl = info.pageUrl || tab.url || ''
+
+  await cacheSessionSnapshot(
+    {
+      englishAltText: '',
+      translationText: '',
+      translationLang: '',
+      imageSrc: '',
+      thumbDataUrl: '',
+      pageUrl
+    },
+    { tab }
+  )
+
+  chrome.runtime
+    .sendMessage({
+      type: 'ALT_TEXT_GENERATION_STARTED',
+      imageSrc
+    })
+    .catch(() => {})
 
   const openPopupPromise = chrome.action?.openPopup?.().catch(error => {
     console.warn('Failed to open popup automatically', error)
