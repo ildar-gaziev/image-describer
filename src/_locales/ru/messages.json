@@ -1,0 +1,10 @@
+{
+  "name": {
+    "message": "Языковой помощник",
+    "description": "extension name"
+  },
+  "description": {
+    "message": "Приложение для создания материалов для изучения языка",
+    "description": "extension description"
+  }
+}

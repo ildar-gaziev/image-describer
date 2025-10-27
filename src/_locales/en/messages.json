@@ -1,0 +1,10 @@
+{
+  "name": {
+    "message": "Language tutor",
+    "description": "extension name"
+  },
+  "description": {
+    "message": "The app for creating language learning materials",
+    "description": "extension description"
+  }
+}

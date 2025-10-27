@@ -1,0 +1,10 @@
+{
+  "name": {
+    "message": "Βοηθός γλώσσας",
+    "description": "extension name"
+  },
+  "description": {
+    "message": "Η εφαρμογή για τη δημιουργία υλικού εκμάθησης γλωσσών",
+    "description": "extension description"
+  }
+}

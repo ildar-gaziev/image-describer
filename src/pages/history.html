@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Saved ALT Cards</title>
+    <style>
+        @import 'https://unpkg.com/open-props';
+        @import 'https://unpkg.com/open-props/normalize.min.css';
+        @import 'https://unpkg.com/open-props/buttons.min.css';
+        @import 'https://unpkg.com/open-props/theme.light.switch.min.css';
+        @import 'https://unpkg.com/open-props/theme.dark.switch.min.css';
+
+        body {
+            margin: auto;
+            padding: 12px;
+            max-width: 960px;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin: 8px 0 16px;
+        }
+
+        #gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 10px;
+        }
+
+        .card {
+            border: 1px solid var(--surface-3, #ddd);
+            border-radius: 8px;
+            padding: 12px;
+            background: var(--surface-1, #fafafa);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card img {
+            width: 100%;
+            height: 140px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: white;
+        }
+
+        .card-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .card-controls label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: var(--font-size-0, 12px);
+        }
+
+        .card-controls button {
+            margin-top: 0;
+        }
+
+        .translation-text {
+            margin: 0;
+            padding: 10px;
+            border-radius: 6px;
+            background: var(--surface-2, #f4f4f4);
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Saved ALT cards</h2>
+    <div class="row">
+        <label for="targetLang">Preferred practice language:</label>
+        <select id="targetLang"></select>
+    </div>
+    <div class="row">
+        <button id="clearAll" type="button">Clear all</button>
+        <button id="refresh" type="button">Refresh</button>
+    </div>
+    <div id="gallery"></div>
+
+    <script type="module" src="./history.js"></script>
+</body>
+
+</html>
