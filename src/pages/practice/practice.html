@@ -75,13 +75,25 @@
         }
 
         #recitationResults {
+            display: grid;
+            gap: 16px;
+        }
+
+        .feedback-card {
             border: 1px solid var(--surface-3, #ddd);
             border-radius: 8px;
             padding: 12px;
             background: var(--surface-1, #fafafa);
         }
 
-        #recitationResults > * {
+        .feedback-card h3 {
+            margin: 0 0 8px;
+            font-size: var(--font-size-3, 1.1rem);
+        }
+
+        .feedback-card p,
+        .feedback-card div,
+        .feedback-card select {
             margin: 6px 0;
         }
 
@@ -117,13 +129,18 @@
     <p id="status" role="status" aria-live="polite"></p>
 
     <section id="recitationResults" hidden>
-        <h2>Recitation feedback</h2>
-        <p id="transcription"></p>
-        <div id="analysis"></div>
-        <div id="analysisTranslation" hidden>
-            <label for="analysisTranslateSelect">Translate feedback:</label>
-            <select id="analysisTranslateSelect"></select>
-            <p id="analysisTranslatedText"></p>
+        <div id="transcriptionCard" class="feedback-card" hidden>
+            <h3>You said</h3>
+            <p id="transcription"></p>
+        </div>
+        <div id="feedbackCard" class="feedback-card" hidden>
+            <h3>Feedback</h3>
+            <div id="analysis"></div>
+            <div id="analysisTranslation" hidden>
+                <label for="analysisTranslateSelect">Translate feedback:</label>
+                <select id="analysisTranslateSelect"></select>
+                <p id="analysisTranslatedText"></p>
+            </div>
         </div>
     </section>
 

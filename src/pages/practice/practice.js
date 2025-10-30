@@ -19,6 +19,8 @@ const analysisEl = document.getElementById('analysis')
 const analysisTranslationSection = document.getElementById('analysisTranslation')
 const analysisTranslateSelect = document.getElementById('analysisTranslateSelect')
 const analysisTranslatedText = document.getElementById('analysisTranslatedText')
+const transcriptionCard = document.getElementById('transcriptionCard')
+const feedbackCard = document.getElementById('feedbackCard')
 
 let card = null
 let voices = []
@@ -338,6 +340,8 @@ function updatePracticeCard () {
   if (analysisTranslationSection) analysisTranslationSection.hidden = true
   if (analysisTranslatedText) analysisTranslatedText.textContent = ''
   if (analysisTranslateSelect) analysisTranslateSelect.innerHTML = ''
+  if (transcriptionCard) transcriptionCard.hidden = true
+  if (feedbackCard) feedbackCard.hidden = true
   analysisResult = { accuracy: null, feedback: '' }
   currentAnalysisTranslationLang = ''
 
@@ -438,7 +442,7 @@ Learner attempt:
             }
           ]
         }
-      ])
+      ], { outputLanguage: 'en' })
       session.destroy?.()
 
       const stringifyOutput = value => {
@@ -523,6 +527,9 @@ Learner attempt:
   } else if (analysisTranslationSection) {
     analysisTranslationSection.hidden = true
   }
+
+  if (recitationSection) recitationSection.hidden = false
+  if (feedbackCard) feedbackCard.hidden = false
 }
 
 function startRecognition () {
@@ -544,6 +551,8 @@ function startRecognition () {
   if (transcriptionEl) transcriptionEl.textContent = ''
   if (analysisEl) analysisEl.textContent = ''
   recordedTranscript = ''
+  if (transcriptionCard) transcriptionCard.hidden = true
+  if (feedbackCard) feedbackCard.hidden = true
 
   recognition = new RecognitionCtor()
   recognition.lang = mapRecognitionLocale(card?.targetLanguage || 'en')
@@ -579,10 +588,13 @@ function startRecognition () {
 
     if (attempt) {
       if (recitationSection) recitationSection.hidden = false
-      if (transcriptionEl) transcriptionEl.textContent = `You said: "${attempt}"`
+      if (transcriptionCard) transcriptionCard.hidden = false
+      if (transcriptionEl) transcriptionEl.textContent = attempt
       await analyzeRecitation(referenceText, attempt, card?.targetLanguage || 'en')
     } else {
       if (recitationSection) recitationSection.hidden = true
+      if (transcriptionCard) transcriptionCard.hidden = true
+      if (feedbackCard) feedbackCard.hidden = true
       setStatus('No speech detected.')
     }
   }
