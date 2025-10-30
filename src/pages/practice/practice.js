@@ -33,6 +33,7 @@ let hiddenText = false
 let recordedTranscript = ''
 let analysisResult = { accuracy: null, feedback: '' }
 let currentAnalysisTranslationLang = ''
+let recognitionEndTimer = null
 
 function setStatus (message) {
   statusEl.textContent = message || ''
@@ -372,6 +373,10 @@ async function init () {
 }
 
 function stopRecognition () {
+  if (recognitionEndTimer) {
+    clearTimeout(recognitionEndTimer)
+    recognitionEndTimer = null
+  }
   if (recognition && isRecording) {
     try {
       recognition.stop()
@@ -468,8 +473,12 @@ Learner attempt:
       }
 
       const raw = stringifyOutput(response).trim()
+      const normalizedRaw = raw.replace(/```json/gi, '```').replace(/```\s*$/,'```')
+      const jsonMatch = normalizedRaw.match(/```\s*([\s\S]*?)\s*```/)
+      const contentToParse = jsonMatch ? jsonMatch[1] : normalizedRaw
+
       try {
-        const parsed = JSON.parse(raw)
+        const parsed = JSON.parse(contentToParse)
         if (typeof parsed.accuracy === 'number') {
           score = Math.round(parsed.accuracy)
         }
@@ -478,7 +487,7 @@ Learner attempt:
         }
       } catch (jsonError) {
         console.warn('Failed to parse LanguageModel JSON output; using raw text.', jsonError)
-        feedback = raw
+        feedback = contentToParse
       }
     } catch (error) {
       availabilityNote = 'LanguageModel analysis failed; using fallback estimate.'
@@ -495,27 +504,24 @@ Learner attempt:
   }
 
   if (analysisEl) {
-    const fragment = document.createDocumentFragment()
+    analysisEl.textContent = ''
     if (score != null) {
       const accuracyEl = document.createElement('strong')
       accuracyEl.className = 'analysis-accuracy'
       accuracyEl.textContent = `Accuracy: ${score}%`
-      fragment.appendChild(accuracyEl)
+      analysisEl.appendChild(accuracyEl)
+      analysisEl.appendChild(document.createElement('br'))
     }
     if (feedback) {
-      if (fragment.childNodes.length) fragment.appendChild(document.createTextNode(' — '))
-      const feedbackEl = document.createElement('span')
+      const feedbackEl = document.createElement('p')
       feedbackEl.textContent = feedback
-      fragment.appendChild(feedbackEl)
+      analysisEl.appendChild(feedbackEl)
     }
     if (availabilityNote) {
-      if (fragment.childNodes.length) fragment.appendChild(document.createTextNode(' — '))
       const noteEl = document.createElement('em')
       noteEl.textContent = availabilityNote
-      fragment.appendChild(noteEl)
+      analysisEl.appendChild(noteEl)
     }
-    analysisEl.textContent = ''
-    analysisEl.appendChild(fragment)
   }
 
   const finalStatus = availabilityNote || 'Analysis complete.'
@@ -547,29 +553,50 @@ function startRecognition () {
   }
 
   cancelSpeech()
-  if (recitationSection) recitationSection.hidden = true
-  if (transcriptionEl) transcriptionEl.textContent = ''
-  if (analysisEl) analysisEl.textContent = ''
   recordedTranscript = ''
+  if (recitationSection) recitationSection.hidden = true
   if (transcriptionCard) transcriptionCard.hidden = true
+  if (transcriptionEl) transcriptionEl.textContent = ''
   if (feedbackCard) feedbackCard.hidden = true
+  if (analysisEl) analysisEl.textContent = ''
+  if (analysisTranslationSection) analysisTranslationSection.hidden = true
+  if (analysisTranslateSelect) analysisTranslateSelect.innerHTML = ''
+  if (analysisTranslatedText) analysisTranslatedText.textContent = ''
 
   recognition = new RecognitionCtor()
   recognition.lang = mapRecognitionLocale(card?.targetLanguage || 'en')
   recognition.interimResults = false
   recognition.maxAlternatives = 1
+  recognition.continuous = true
+  recognition.onspeechstart = () => {
+    if (recognitionEndTimer) {
+      clearTimeout(recognitionEndTimer)
+      recognitionEndTimer = null
+    }
+  }
+  recognition.onspeechend = () => {
+    scheduleRecognitionStop()
+  }
 
   recognition.onresult = event => {
     const transcript = Array.from(event.results)
       .map(result => result[0].transcript)
       .join(' ')
     recordedTranscript = transcript.trim()
+    if (recognitionEndTimer) {
+      clearTimeout(recognitionEndTimer)
+      recognitionEndTimer = null
+    }
   }
 
   recognition.onerror = event => {
     console.error('Speech recognition error', event.error)
     setStatus(`Speech recognition failed: ${event.error}`)
     isRecording = false
+    if (recognitionEndTimer) {
+      clearTimeout(recognitionEndTimer)
+      recognitionEndTimer = null
+    }
     if (recordButton) {
       recordButton.textContent = '🎙️'
       recordButton.title = 'Start recording'
@@ -580,6 +607,10 @@ function startRecognition () {
   recognition.onend = async () => {
     const attempt = recordedTranscript
     recognition = null
+    if (recognitionEndTimer) {
+      clearTimeout(recognitionEndTimer)
+      recognitionEndTimer = null
+    }
     if (recordButton) {
       recordButton.textContent = '🎙️'
       recordButton.title = 'Start recording'
@@ -592,9 +623,6 @@ function startRecognition () {
       if (transcriptionEl) transcriptionEl.textContent = attempt
       await analyzeRecitation(referenceText, attempt, card?.targetLanguage || 'en')
     } else {
-      if (recitationSection) recitationSection.hidden = true
-      if (transcriptionCard) transcriptionCard.hidden = true
-      if (feedbackCard) feedbackCard.hidden = true
       setStatus('No speech detected.')
     }
   }
@@ -617,6 +645,22 @@ function startRecognition () {
       recordButton.title = 'Start recording'
     }
   }
+}
+
+function scheduleRecognitionStop () {
+  if (recognitionEndTimer) {
+    clearTimeout(recognitionEndTimer)
+    recognitionEndTimer = null
+  }
+  recognitionEndTimer = setTimeout(() => {
+    if (recognition && isRecording) {
+      try {
+        recognition.stop()
+      } catch (error) {
+        console.warn('Failed to stop recognition after timeout', error)
+      }
+    }
+  }, 3000)
 }
 
 voiceSelect?.addEventListener('change', () => {
