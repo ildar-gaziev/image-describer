@@ -4,6 +4,7 @@ import {
   getLanguageLabel,
   resolveLanguageValue
 } from '../shared/languages.js'
+import { translateText } from '../shared/translate.js'
 
 const gallery = document.getElementById('gallery')
 const clearAllBtn = document.getElementById('clearAll')
@@ -197,23 +198,21 @@ async function translateCard (cardId, specifiedLang) {
     return
   }
 
+  output.hidden = false
   if (!card.descriptionEn) {
-    output.hidden = false
     output.textContent = 'No English description available.'
     output.removeAttribute('lang')
     return
   }
 
-  output.hidden = false
   output.textContent = `Translating to ${getLanguageLabel(lang)}...`
   output.removeAttribute('lang')
 
   try {
-    const translator = await Translator.create({
-      sourceLanguage: 'en',
+    const translated = await translateText({
+      text: card.descriptionEn,
       targetLanguage: lang
     })
-    const translated = await translator.translate(card.descriptionEn)
     const text =
       typeof translated === 'string'
         ? translated.trim()

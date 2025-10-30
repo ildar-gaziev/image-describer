@@ -47,9 +47,7 @@ async function clearSessionSnapshot () {
   try {
     await sessionStore.remove(SESSION_KEYS)
   } catch {
-    const emptyValues = Object.fromEntries(
-      SESSION_KEYS.map(key => [key, ''])
-    )
+    const emptyValues = Object.fromEntries(SESSION_KEYS.map(key => [key, '']))
     await sessionStore.set(emptyValues)
   }
 }
@@ -70,9 +68,9 @@ async function openHistoryPage () {
           .update(targetTab.windowId, { focused: true })
           .catch(() => {})
       }
-      await chrome.tabs.reload(targetTab.id, { bypassCache: true }).catch(
-        () => {}
-      )
+      await chrome.tabs
+        .reload(targetTab.id, { bypassCache: true })
+        .catch(() => {})
       return
     }
 
@@ -201,7 +199,7 @@ async function generateAltText (imgSrc) {
         {
           type: 'text',
           value:
-            'Provide an objective description of this image in around 30 words using an object-action-context structure. Include important visible text if present. Avoid starting with "The image".'
+            'Provide an objective description of this image in around 35 words using an object-action-context structure. Avoid starting with "The image".'
         },
         { type: 'image', value: imageBitmap }
       ]
@@ -255,8 +253,7 @@ async function describeImageFromContext (info, tab) {
     collectImageDetailsFromPage(tab.id, imageSrc)
   ])
 
-  const englishAltText =
-    altResult.status === 'fulfilled' ? altResult.value : ''
+  const englishAltText = altResult.status === 'fulfilled' ? altResult.value : ''
   if (altResult.status === 'rejected') {
     console.error('Failed to generate alt text', altResult.reason)
   }
