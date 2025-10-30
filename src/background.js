@@ -99,6 +99,23 @@ function ensureContextMenus () {
   })
 }
 
+function setActionPopup (popupPath) {
+  if (!chrome.action?.setPopup) return Promise.resolve()
+  return chrome.action.setPopup({ popup: popupPath })
+}
+
+async function openAltTextPopup () {
+  if (!chrome.action?.openPopup) return
+  try {
+    await setActionPopup('popup/popup.html')
+    await chrome.action.openPopup()
+  } catch (error) {
+    console.warn('Failed to open popup automatically', error)
+  } finally {
+    setActionPopup('').catch(() => {})
+  }
+}
+
 async function collectImageDetailsFromPage (tabId, srcUrl) {
   if (!chrome.scripting?.executeScript || !tabId) return null
   try {
@@ -231,9 +248,7 @@ async function describeImageFromContext (info, tab) {
     })
     .catch(() => {})
 
-  const openPopupPromise = chrome.action?.openPopup?.().catch(error => {
-    console.warn('Failed to open popup automatically', error)
-  })
+  const openPopupPromise = openAltTextPopup()
 
   const [altResult, detailsResult] = await Promise.allSettled([
     generateAltText(imageSrc),
@@ -279,11 +294,13 @@ chrome.runtime.onInstalled.addListener(() => {
   clearSessionSnapshot().catch(() => {})
 
   ensureContextMenus()
+  setActionPopup('').catch(() => {})
 })
 
 chrome.runtime.onStartup?.addListener(() => {
   clearSessionSnapshot().catch(() => {})
   ensureContextMenus()
+  setActionPopup('').catch(() => {})
 })
 
 if (chrome.contextMenus?.onClicked) {
@@ -295,6 +312,14 @@ if (chrome.contextMenus?.onClicked) {
         console.error('Failed to process image from context menu', error)
       })
     }
+  })
+}
+
+if (chrome.action?.onClicked) {
+  chrome.action.onClicked.addListener(() => {
+    openHistoryPage().catch(error => {
+      console.error('Failed to open history from action click', error)
+    })
   })
 }
 
@@ -323,4 +348,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 })
 
+setActionPopup('').catch(() => {})
 ensureContextMenus()

@@ -86,6 +86,15 @@ function createCardElement (card) {
   select.innerHTML = buildLanguageOptions(selectedLang)
 
   controls.appendChild(select)
+
+  const practiceBtn = document.createElement('button')
+  practiceBtn.type = 'button'
+  practiceBtn.className = 'practice-btn'
+  practiceBtn.dataset.act = 'practice'
+  practiceBtn.dataset.id = card.id
+  practiceBtn.title = 'Practice'
+  practiceBtn.textContent = '🎧'
+  controls.appendChild(practiceBtn)
   const deleteBtn = document.createElement('button')
   deleteBtn.type = 'button'
   deleteBtn.dataset.act = 'delete'
@@ -195,13 +204,6 @@ async function translateCard (cardId, specifiedLang) {
     return
   }
 
-  if (!card.descriptionEn) {
-    output.hidden = false
-    output.textContent = 'No English description available.'
-    output.removeAttribute('lang')
-    return
-  }
-
   output.hidden = false
   output.textContent = `Translating to ${getLanguageLabel(lang)}...`
   output.removeAttribute('lang')
@@ -243,6 +245,19 @@ gallery.addEventListener('click', async event => {
     cardsCache.splice(index, 1)
     await setCards(cardsCache)
     await renderGallery()
+  } else if (act === 'practice') {
+    const url = new URL(chrome.runtime.getURL('pages/practice/practice.html'))
+    url.hash = `cardId=${encodeURIComponent(id)}`
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (tab?.id) {
+        await chrome.tabs.update(tab.id, { url: url.toString() })
+        return
+      }
+    } catch (error) {
+      console.warn('Failed to reuse current tab', error)
+    }
+    window.location.href = url.toString()
   }
 })
 
