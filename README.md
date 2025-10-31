@@ -4,6 +4,8 @@ The extension using [Summarizer API](https://developer.chrome.com/docs/ai/summar
 
 ## Overview
 
+**Image description is one of the possible items in the oral part of language tests.**
+
 The Describer of Images is a Chrome extension that helps users understand, translate, and practice describing images. With a simple right-click on any picture on the web, the extension generates a preview card containing a concise, AI-powered description of the image.
 
 Each generated card can be saved for later use, and users can translate the description into different languages for learning and accessibility purposes.
